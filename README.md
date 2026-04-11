@@ -1,52 +1,25 @@
 # 🃏 DAVPoker AI Engine
 
-DAVPoker er en avanceret FastAPI-baseret Poker AI Engine designet til real-tids beslutningstagning i Texas Hold'em. Motoren kombinerer statistiske modeller med dynamisk modstander-profilering for at maksimere Expected Value (EV).
+DAVPoker is a FastAPI-based Poker AI engine for real-time decision support in Texas Hold'em.
 
-## 🚀 Kernefunktioner
+## Project structure
 
-*   **Adaptiv Bluff-Logik:** Justerer automatisk bluff-frekvensen baseret på tidligere succesrater og modstanderens tendenser.
-*   **Modstander-Profilering:** Tracker specifikke `player_id`'er for at identificere "Calling Stations" (bluffer mindre) og "Tight Players" (bluffer mere).
-*   **EV-Kontrol:** Beregner modstanderens pot-odds og aflyser bluffs, hvis det er matematisk fordelagtigt for modstanderen at kalde.
-*   **FastAPI Backend:** Hurtig og asynkron API-struktur til integration med scrapere eller spil-klienter.
+- `main.py`: compatibility entrypoint for `uvicorn main:app`.
+- `app/main.py`: FastAPI app, route registration, and dependency wiring.
+- `app/engine.py`: poker decision logic, opponent profiling, and EV utility.
+- `app/models.py`: request models and input validation schemas.
+- `app/middleware.py`: request timing + structured request logging middleware.
+- `app/logging_config.py`: logger and rotating file handler configuration.
 
-## 🛠 Teknisk Stack
+## API Endpoints
 
-*   **Sprog:** Python 3.12
-*   **Framework:** FastAPI / Uvicorn
-*   **Sikkerhed:** Passlib (bcrypt 3.2.0)
-*   **Analyse:** Matplotlib & HTTPX (til test og visualisering)
+- `GET /health`
+- `POST /api/v1/scraper/ingest`
+- `POST /api/v1/scraper/outcome`
 
-## 📋 Installation
+## Run locally
 
-1.  **Klon projektet:**
-    ```bash
-    git clone https://github.com/cptleftnut/DAVPoker.git
-    cd DAVPoker
-    ```
-
-2.  **Opsæt virtuelt miljø:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # Windows: venv\Scripts\activate
-    ```
-
-3.  **Installer afhængigheder:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Konfigurer miljø:**
-    Kopier `.env.example` til `.env` og tilpas dine indstillinger.
-
-## 🚦 Kørsel
-
-Start serveren med Uvicorn:
 ```bash
+pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
-Besøg derefter `http://127.0.0.1:8000/docs` for at se API-dokumentationen (Swagger UI).
-
-## 📡 API Endpoints
-
-*   `POST /api/v1/scraper/ingest`: Modtag game-state og få AI-beslutning.
-*   `POST /api/v1/scraper/outcome`: Rapporter runderesultat for at opdatere modstanderprofiler.
