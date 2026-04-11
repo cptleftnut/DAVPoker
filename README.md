@@ -23,3 +23,10 @@ DAVPoker is a FastAPI-based Poker AI engine for real-time decision support in Te
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
+
+
+## Testing
+
+```bash
+python -m unittest discover -s tests -v
+```
