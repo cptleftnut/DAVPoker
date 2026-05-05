@@ -1,0 +1,151 @@
+name: Android Release Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - mobile
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - alpha
+          - beta
+          - production
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build Android APK & AAB
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Authenticate with EAS
+        run: eas login --non-interactive
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Build APK (Preview)
+        if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+        run: eas build --platform android --non-interactive --profile preview
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Build AAB (Production)
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_type == 'production'
+        run: eas build --platform android --non-interactive --profile production
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: DAVPoker Mobile ${{ github.ref }}
+          body: |
+            ## DAVPoker Android Release
+            
+            ### Release Notes
+            - AI-powered poker decision engine
+            - Real-time opponent tracking
+            - Session analytics and bankroll management
+            - Hand range visualization
+            
+            ### Download
+            - APK: Available for manual installation
+            - AAB: Available on Google Play Store
+            
+            ### Installation
+            For APK: Enable installation from unknown sources and install directly
+            For AAB: Download from Google Play Store
+            
+            ### Features
+            - Real-time hand analysis with AI recommendations
+            - Opponent database with VPIP/PFR tracking
+            - Session analytics with charts
+            - Bankroll management tools
+            - Hand range visualization by position
+            
+            ### Changelog
+            See CHANGELOG.md for detailed changes
+          draft: false
+          prerelease: ${{ github.event.inputs.release_type == 'beta' || github.event.inputs.release_type == 'alpha' }}
+
+      - name: Upload to Google Play Store
+        if: startsWith(github.ref, 'refs/tags/')
+        run: eas submit --platform android --non-interactive
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          GOOGLE_PLAY_JSON_KEY: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        continue-on-error: true
+
+      - name: Notify Slack on Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "✅ DAVPoker Android Build Successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*✅ DAVPoker Android Build Successful*\n*Ref:* ${{ github.ref }}\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                  }
+                }
+              ]
+            }
+        continue-on-error: true
+
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "❌ DAVPoker Android Build Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*❌ DAVPoker Android Build Failed*\n*Ref:* ${{ github.ref }}\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*View Logs:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>"
+                  }
+                }
+              ]
+            }
+        continue-on-error: true
